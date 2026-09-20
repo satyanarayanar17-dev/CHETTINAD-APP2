@@ -8,8 +8,6 @@ import com.example.data.api.ChettinadApiService
 import com.example.data.api.PersistentCookieJar
 import com.example.data.api.TokenAuthenticator
 import com.example.data.db.ChettinadDatabase
-import com.example.data.firebase.FirebaseAuthService
-import com.example.data.firebase.FirestoreService
 import com.example.data.repository.AuthRepository
 import com.example.data.repository.DoctorRepository
 import com.example.data.repository.NurseRepository
@@ -33,8 +31,6 @@ interface AppContainer {
     val nurseRepository: NurseRepository
     val adminRepository: AdminRepository
     val patientRepository: PatientRepository
-    val firestoreService: FirestoreService
-    val firebaseAuthService: FirebaseAuthService
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
@@ -101,11 +97,11 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val doctorRepository: DoctorRepository by lazy {
-        DoctorRepository(chettinadApiService, chettinadDatabase.draftNoteDao(), firestoreService)
+        DoctorRepository(chettinadApiService, chettinadDatabase.draftNoteDao())
     }
 
     override val nurseRepository: NurseRepository by lazy {
-        NurseRepository(chettinadApiService, firestoreService)
+        NurseRepository(chettinadApiService)
     }
 
     override val adminRepository: AdminRepository by lazy {
@@ -113,14 +109,6 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val patientRepository: PatientRepository by lazy {
-        PatientRepository(chettinadApiService, firestoreService)
-    }
-
-    override val firestoreService: FirestoreService by lazy {
-        FirestoreService()
-    }
-
-    override val firebaseAuthService: FirebaseAuthService by lazy {
-        FirebaseAuthService(firestoreService)
+        PatientRepository(chettinadApiService)
     }
 }

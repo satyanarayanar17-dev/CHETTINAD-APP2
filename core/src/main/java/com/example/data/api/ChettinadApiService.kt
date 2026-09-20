@@ -9,6 +9,9 @@ interface ChettinadApiService {
     @POST("auth/login/staff")
     suspend fun loginStaff(@Body credentials: Map<String, String>): LoginResponse
 
+    @POST("auth/login")
+    suspend fun login(@Body credentials: Map<String, String>): LoginResponse
+
     @POST("auth/opd/otp/request")
     suspend fun requestOtp(@Body payload: Map<String, String>): OtpRequestResponse
 

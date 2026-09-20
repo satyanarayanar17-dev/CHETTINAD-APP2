@@ -14,6 +14,9 @@ class TokenManager {
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
     fun saveToken(token: String) {
+        require(!token.startsWith("firebase_token_") && !token.startsWith("demo_google_token_")) {
+            "Synthetic tokens cannot be stored in TokenManager. Only backend-issued JWTs are accepted."
+        }
         accessToken = token
     }
 

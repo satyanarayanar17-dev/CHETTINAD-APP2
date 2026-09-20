@@ -3,21 +3,18 @@ package com.example.data.repository
 import com.example.data.api.ChettinadApiService
 import com.example.data.api.TriageWrite
 import com.example.data.api.VersionRequest
-import com.example.data.firebase.FirestoreService
-import com.example.data.firebase.FirestoreTriageRecord
 import com.example.domain.model.Patient
-import retrofit2.Response
+import retrofit2.HttpException
 
-class NurseRepository(
-    private val apiService: ChettinadApiService,
-    private val firestoreService: FirestoreService? = null
+open class NurseRepository(
+    private val apiService: ChettinadApiService
 ) {
-    suspend fun getQueue(): Result<List<Patient>> {
+    open suspend fun getQueue(): Result<List<Patient>> {
         return try {
             val queue = apiService.getQueue()
             val mapped = queue.map { entry ->
                 Patient(
-                    id = entry.encounter_id, // Map encounter_id to id so UI can pass it for next steps
+                    id = entry.patient_id,
                     mrn = entry.mrn,
                     name = entry.patient_name,
                     age = try {
@@ -26,7 +23,8 @@ class NurseRepository(
                         2024 - year
                     } catch (e: Exception) { 30 },
                     gender = entry.gender,
-                    allergies = emptyList()
+                    allergies = emptyList(),
+                    encounterId = entry.encounter_id
                 )
             }
             Result.success(mapped)
@@ -35,44 +33,29 @@ class NurseRepository(
         }
     }
 
-    suspend fun startTriage(encounterId: String, version: Int): Result<Unit> {
+    open suspend fun startTriage(encounterId: String, version: Int): Result<Unit> {
         return try {
-            apiService.startTriage(encounterId, VersionRequest(version))
-            Result.success(Unit)
+            val response = apiService.startTriage(encounterId, VersionRequest(version))
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(HttpException(response))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    suspend fun submitTriage(encounterId: String, triageWrite: TriageWrite): Result<Unit> {
-        val record = FirestoreTriageRecord(
-            triageId = encounterId,
-            patientId = encounterId,
-            systolic = triageWrite.data.systolic,
-            diastolic = triageWrite.data.diastolic,
-            pulseRate = triageWrite.data.pulse,
-            temperature = triageWrite.data.temperature,
-            spo2 = triageWrite.data.spo2.toInt(),
-            painScore = triageWrite.data.pain,
-            acuity = when (triageWrite.data.priority) {
-                1 -> "P1 (Emergency)"
-                2 -> "P2 (Urgent)"
-                else -> "P3 (Routine)"
-            },
-            chiefComplaint = triageWrite.data.complaint,
-            timestamp = System.currentTimeMillis()
-        )
-        // Persist to Firestore
-        try {
-            firestoreService?.saveTriageVitals(record)
-        } catch (_: Exception) {}
-
+    open suspend fun submitTriage(encounterId: String, triageWrite: TriageWrite): Result<Unit> {
         return try {
-            apiService.submitTriage(encounterId, triageWrite)
-            Result.success(Unit)
+            val response = apiService.submitTriage(encounterId, triageWrite)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(HttpException(response))
+            }
         } catch (e: Exception) {
-            // Success in local/cloud persistence
-            Result.success(Unit)
+            Result.failure(e)
         }
     }
 }

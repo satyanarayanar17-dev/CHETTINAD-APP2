@@ -27,9 +27,7 @@ fun StaffApp(appContainer: AppContainer) {
 
     val authViewModel: AuthViewModel = viewModel(
         factory = AuthViewModel.provideFactory(
-            authRepository = appContainer.authRepository,
-            firebaseAuthService = appContainer.firebaseAuthService,
-            firestoreService = appContainer.firestoreService
+            authRepository = appContainer.authRepository
         )
     )
     val authState by authViewModel.uiState.collectAsState()
@@ -39,7 +37,7 @@ fun StaffApp(appContainer: AppContainer) {
             Role.DOCTOR -> "doctor/home"
             Role.NURSE -> "nurse/queue"
             Role.ADMIN -> "admin/dashboard"
-            Role.PATIENT -> "auth" // Handled by viewmodel
+            Role.PATIENT -> "auth"
         }
     } else {
         "auth"
@@ -53,14 +51,13 @@ fun StaffApp(appContainer: AppContainer) {
             LoginScreen(
                 uiState = authState,
                 onLogin = authViewModel::login,
-                onGoogleSignIn = authViewModel::loginWithGoogle,
-                onDemoGoogleSignIn = authViewModel::loginDemoGoogle,
+                onDemoLogin = authViewModel::loginDemo,
                 onLoginSuccess = { role ->
                     val destination = when (role) {
                         Role.DOCTOR -> "doctor/home"
                         Role.NURSE -> "nurse/queue"
                         Role.ADMIN -> "admin/dashboard"
-                        Role.PATIENT -> return@LoginScreen // viewmodel handles error
+                        Role.PATIENT -> return@LoginScreen
                     }
                     navController.navigate(destination) {
                         popUpTo("auth") { inclusive = true }

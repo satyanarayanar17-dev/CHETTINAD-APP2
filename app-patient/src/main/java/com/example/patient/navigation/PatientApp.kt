@@ -27,9 +27,7 @@ fun PatientApp(appContainer: AppContainer) {
 
     val authViewModel: AuthViewModel = viewModel(
         factory = AuthViewModel.provideFactory(
-            authRepository = appContainer.authRepository,
-            firebaseAuthService = appContainer.firebaseAuthService,
-            firestoreService = appContainer.firestoreService
+            authRepository = appContainer.authRepository
         )
     )
     val authState by authViewModel.uiState.collectAsState()
@@ -42,8 +40,7 @@ fun PatientApp(appContainer: AppContainer) {
             LoginScreen(
                 uiState = authState,
                 onLogin = authViewModel::login,
-                onGoogleSignIn = authViewModel::loginWithGoogle,
-                onDemoGoogleSignIn = authViewModel::loginDemoGoogle,
+                onDemoLogin = authViewModel::loginDemo,
                 onLoginSuccess = { role ->
                     if (role == Role.PATIENT) {
                         navController.navigate("patient/home") {

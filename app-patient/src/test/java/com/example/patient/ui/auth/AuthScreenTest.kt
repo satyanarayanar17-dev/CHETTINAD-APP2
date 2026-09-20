@@ -3,8 +3,6 @@ package com.example.patient.ui.auth
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.example.patient.ui.auth.AuthUiState
-import com.example.patient.ui.auth.LoginScreen
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,17 +21,16 @@ class AuthScreenTest {
             LoginScreen(
                 uiState = AuthUiState(),
                 onLogin = { _, _ -> },
-                onGoogleSignIn = {},
-                onDemoGoogleSignIn = {},
+                onDemoLogin = {},
                 onLoginSuccess = {},
                 onErrorDismiss = {}
             )
         }
 
         composeTestRule.onNodeWithText("Chettinad Care").assertExists()
+        composeTestRule.onNodeWithText("Patient Health Portal").assertExists()
         composeTestRule.onNodeWithText("Patient ID (e.g. PT1001)").assertExists()
-        composeTestRule.onNodeWithText("Password / PIN").assertExists()
-        composeTestRule.onNodeWithText("Sign in with Google").assertExists()
-        composeTestRule.onNodeWithText("Sign In with ID").assertExists()
+        composeTestRule.onNodeWithText("PIN / Password").assertExists()
+        composeTestRule.onNodeWithText("Sign In").assertExists()
     }
 }

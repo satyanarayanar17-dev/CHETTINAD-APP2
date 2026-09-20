@@ -18,7 +18,8 @@ data class Patient(
     val name: String,
     val age: Int,
     val gender: String,
-    val allergies: List<String> = emptyList()
+    val allergies: List<String> = emptyList(),
+    val encounterId: String? = null
 )
 
 data class Triage(

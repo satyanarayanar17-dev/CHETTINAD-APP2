@@ -5,7 +5,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
-import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material3.*
@@ -15,9 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @Composable
 fun PatientRecordsScreen(
@@ -30,9 +26,9 @@ fun PatientRecordsScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (uiState.isLoading && uiState.dossier == null && uiState.cloudRecords.isEmpty()) {
+        if (uiState.isLoading && uiState.dossier == null) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-        } else if (uiState.error != null && uiState.dossier == null && uiState.cloudRecords.isEmpty()) {
+        } else if (uiState.error != null && uiState.dossier == null) {
             Column(
                 modifier = Modifier.align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -44,7 +40,6 @@ fun PatientRecordsScreen(
         } else {
             val dossier = uiState.dossier
             val allPastNotes = dossier?.pastNotes ?: emptyList()
-            val cloudRecords = uiState.cloudRecords
 
             Column(modifier = Modifier.fillMaxSize()) {
                 Surface(
@@ -63,18 +58,11 @@ fun PatientRecordsScreen(
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CloudDone,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
+                        if (dossier != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Synced with Cloud Firestore",
-                                style = MaterialTheme.typography.labelSmall,
+                                text = "MRN: ${dossier.patient.mrn} • ${dossier.patient.name}",
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
                             )
                         }
@@ -87,97 +75,6 @@ fun PatientRecordsScreen(
                         .fillMaxWidth(),
                     contentPadding = PaddingValues(24.dp)
                 ) {
-                    // Cloud Firestore Records Section
-                    if (cloudRecords.isNotEmpty()) {
-                        item {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(bottom = 12.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.CloudDone,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    "Cloud Firestore Encounters (${cloudRecords.size})",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-
-                        items(cloudRecords) { cr ->
-                            val dateStr = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
-                                .format(Date(cr.timestamp))
-                            ElevatedCard(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 6.dp),
-                                colors = CardDefaults.elevatedCardColors(
-                                    containerColor = MaterialTheme.colorScheme.surface
-                                )
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = if (cr.diagnosis.isNotBlank()) cr.diagnosis else "Clinical Consultation",
-                                            fontWeight = FontWeight.Bold,
-                                            style = MaterialTheme.typography.titleMedium
-                                        )
-                                        AssistChip(
-                                            onClick = {},
-                                            label = { Text("Firestore Live", style = MaterialTheme.typography.labelSmall) },
-                                            modifier = Modifier.height(28.dp)
-                                        )
-                                    }
-                                    Text(
-                                        text = dateStr,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    if (cr.subjective.isNotBlank()) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            "Subjective / Symptoms:",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        Text(cr.subjective, style = MaterialTheme.typography.bodyMedium)
-                                    }
-                                    if (cr.assessment.isNotBlank()) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            "Assessment:",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        Text(cr.assessment, style = MaterialTheme.typography.bodyMedium)
-                                    }
-                                    if (cr.plan.isNotBlank()) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            "Treatment Plan:",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        Text(cr.plan, style = MaterialTheme.typography.bodyMedium)
-                                    }
-                                }
-                            }
-                        }
-
-                        item {
-                            Spacer(modifier = Modifier.height(16.dp))
-                        }
-                    }
-
                     // Hospital Notes Section
                     item {
                         Row(
@@ -199,7 +96,7 @@ fun PatientRecordsScreen(
                         }
                     }
 
-                    if (allPastNotes.isEmpty() && cloudRecords.isEmpty()) {
+                    if (allPastNotes.isEmpty()) {
                         item {
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
@@ -207,13 +104,13 @@ fun PatientRecordsScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    "No clinical records found. New consultations will appear here automatically via Firestore cloud synchronization.",
+                                    "No clinical consultation records found on the hospital server.",
                                     modifier = Modifier.padding(24.dp),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                    } else if (allPastNotes.isNotEmpty()) {
+                    } else {
                         items(allPastNotes) { note ->
                             ElevatedCard(
                                 modifier = Modifier

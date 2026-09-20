@@ -8,8 +8,6 @@ import com.example.data.api.PatientRecord
 import com.example.data.api.Catalogues
 import com.example.data.api.NoteVersion
 import com.example.data.db.DraftNoteDao
-import com.example.data.firebase.FirestoreClinicalRecord
-import com.example.data.firebase.FirestoreService
 import com.example.domain.model.Patient
 import com.example.domain.model.PatientDossierResponse
 import com.example.domain.model.ClinicalNote
@@ -20,15 +18,14 @@ import java.util.UUID
 
 open class DoctorRepository(
     private val apiService: ChettinadApiService,
-    private val draftDao: DraftNoteDao,
-    private val firestoreService: FirestoreService? = null
+    private val draftDao: DraftNoteDao
 ) {
     open suspend fun getQueue(department: String): Result<List<Patient>> {
         return try {
             val queue = apiService.getQueue()
             val mapped = queue.map { entry ->
                 Patient(
-                    id = entry.encounter_id, // Map encounter_id to id so UI can pass it for next steps
+                    id = entry.patient_id,
                     mrn = entry.mrn,
                     name = entry.patient_name,
                     age = try {
@@ -37,7 +34,8 @@ open class DoctorRepository(
                         2024 - year
                     } catch (e: Exception) { 30 },
                     gender = entry.gender,
-                    allergies = emptyList()
+                    allergies = emptyList(),
+                    encounterId = entry.encounter_id
                 )
             }
             Result.success(mapped)
@@ -68,9 +66,9 @@ open class DoctorRepository(
             // Map Dossier
             val mappedDossier = PatientDossierResponse(
                 patient = mappedPatient,
-                recentTriage = null, // Simplified for now since structure is complex
-                pastNotes = emptyList(), // Simplified
-                pastPrescriptions = emptyList() // Simplified
+                recentTriage = null,
+                pastNotes = emptyList(),
+                pastPrescriptions = emptyList()
             )
             
             Result.success(mappedDossier)
@@ -91,36 +89,8 @@ open class DoctorRepository(
     open suspend fun completeConsultation(encounterId: String, write: ConsultationWrite): Result<NoteVersion> {
         return try {
             val response = apiService.completeConsultation(encounterId, write)
-            // Persist to Cloud Firestore for cross-module real-time patient syncing
-            try {
-                firestoreService?.saveClinicalRecord(
-                    FirestoreClinicalRecord(
-                        recordId = encounterId,
-                        patientId = encounterId,
-                        subjective = "${write.data.complaint}\n${write.data.history ?: ""}",
-                        objective = write.data.examination ?: "",
-                        assessment = write.data.assessment ?: "",
-                        plan = write.data.treatment ?: "",
-                        timestamp = System.currentTimeMillis()
-                    )
-                )
-            } catch (_: Exception) {}
             Result.success(response)
         } catch (e: Exception) {
-            // Also save to Firestore as fallback cloud persistence
-            try {
-                firestoreService?.saveClinicalRecord(
-                    FirestoreClinicalRecord(
-                        recordId = encounterId,
-                        patientId = encounterId,
-                        subjective = "${write.data.complaint}\n${write.data.history ?: ""}",
-                        objective = write.data.examination ?: "",
-                        assessment = write.data.assessment ?: "",
-                        plan = write.data.treatment ?: "",
-                        timestamp = System.currentTimeMillis()
-                    )
-                )
-            } catch (_: Exception) {}
             Result.failure(e)
         }
     }

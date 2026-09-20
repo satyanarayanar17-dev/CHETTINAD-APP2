@@ -14,22 +14,33 @@ android {
     create("demo") {
       dimension = "environment"
       buildConfigField("String", "API_BASE_URL", "\"https://demo.local/\"")
+      buildConfigField("boolean", "IS_DEMO", "true")
     }
     create("staging") {
       dimension = "environment"
       val stagingUrl = project.findProperty("STAGING_API_URL") as? String ?: System.getenv("STAGING_API_URL")
-      if (stagingUrl == null && gradle.startParameter.taskNames.any { it.contains("Staging", ignoreCase = true) }) {
+      val isAssembleOrBundle = gradle.startParameter.taskNames.any {
+        (it.contains("assemble", ignoreCase = true) || it.contains("bundle", ignoreCase = true)) &&
+        it.contains("Staging", ignoreCase = true)
+      }
+      if (stagingUrl.isNullOrBlank() && isAssembleOrBundle) {
          throw GradleException("STAGING_API_URL is required for staging builds.")
       }
       buildConfigField("String", "API_BASE_URL", "\"${stagingUrl ?: "https://staging.placeholder/"}\"")
+      buildConfigField("boolean", "IS_DEMO", "false")
     }
     create("production") {
       dimension = "environment"
       val prodUrl = project.findProperty("PRODUCTION_API_URL") as? String ?: System.getenv("PRODUCTION_API_URL")
-      if (prodUrl == null && gradle.startParameter.taskNames.any { it.contains("Production", ignoreCase = true) }) {
+      val isAssembleOrBundle = gradle.startParameter.taskNames.any {
+        (it.contains("assemble", ignoreCase = true) || it.contains("bundle", ignoreCase = true)) &&
+        it.contains("Production", ignoreCase = true)
+      }
+      if (prodUrl.isNullOrBlank() && isAssembleOrBundle) {
          throw GradleException("PRODUCTION_API_URL is required for production builds.")
       }
       buildConfigField("String", "API_BASE_URL", "\"${prodUrl ?: "https://production.placeholder/"}\"")
+      buildConfigField("boolean", "IS_DEMO", "false")
     }
   }
 
@@ -65,9 +76,10 @@ dependencies {
   implementation(libs.androidx.compose.ui.graphics)
   implementation(libs.androidx.compose.ui.tooling.preview)
   implementation("androidx.security:security-crypto-ktx:1.1.0-alpha06")
-  api(platform(libs.firebase.bom))
-  api(libs.firebase.auth)
-  api(libs.firebase.firestore)
+  // Unused Firebase dependencies removed to preserve canonical Node/Express backend architecture
+  // api(platform(libs.firebase.bom))
+  // api(libs.firebase.auth)
+  // api(libs.firebase.firestore)
   api(libs.androidx.credentials)
   api(libs.androidx.credentials.play.services)
   api(libs.googleid)

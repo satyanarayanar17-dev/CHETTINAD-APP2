@@ -3,7 +3,6 @@ package com.example.patient.ui.patient
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.ViewModelProvider
-import com.example.data.firebase.FirestoreClinicalRecord
 import com.example.domain.model.PatientDossierResponse
 import com.example.data.repository.PatientRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,8 +14,6 @@ import kotlinx.coroutines.launch
 data class PatientRecordsUiState(
     val isLoading: Boolean = false,
     val dossier: PatientDossierResponse? = null,
-    val cloudRecords: List<FirestoreClinicalRecord> = emptyList(),
-    val isFirestoreConnected: Boolean = true,
     val error: String? = null
 )
 
@@ -37,12 +34,6 @@ class PatientRecordsViewModel(
                 .onFailure { error ->
                     _uiState.update { it.copy(isLoading = false, error = error.message ?: "Failed to load records") }
                 }
-        }
-
-        viewModelScope.launch {
-            repository.observeFirestoreRecords(patientId).collect { firestoreList ->
-                _uiState.update { it.copy(cloudRecords = firestoreList) }
-            }
         }
     }
 

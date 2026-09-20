@@ -18,22 +18,74 @@ open class AuthRepository(
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
     open suspend fun login(credentials: Map<String, String>): Result<User> {
+        return loginStaff(credentials)
+    }
+
+    open suspend fun loginStaff(credentials: Map<String, String>): Result<User> {
         return try {
             val response = apiService.loginStaff(credentials)
+            val role = try {
+                Role.valueOf(response.role.uppercase())
+            } catch (e: Exception) {
+                clearLocalSession()
+                return Result.failure(SecurityException("Unknown staff role: ${response.role}"))
+            }
+
+            if (role == Role.PATIENT) {
+                clearLocalSession()
+                return Result.failure(SecurityException("Patient accounts cannot access the Staff application"))
+            }
+
             tokenManager.saveToken(response.access_token)
-            
-            val role = Role.valueOf(response.role.uppercase())
             val user = User(
                 id = response.userId,
                 name = response.name ?: response.userId,
                 role = role,
-                department = null, // Will fetch from /opd/session if needed
+                department = null,
                 isActive = true
             )
             tokenManager.saveUser(user)
             _currentUser.value = user
             Result.success(user)
         } catch (e: Exception) {
+            clearLocalSession()
+            Result.failure(e)
+        }
+    }
+
+    open suspend fun loginPatient(credentials: Map<String, String>): Result<User> {
+        return try {
+            val response = try {
+                apiService.login(credentials)
+            } catch (e: Exception) {
+                apiService.loginStaff(credentials)
+            }
+
+            val role = try {
+                Role.valueOf(response.role.uppercase())
+            } catch (e: Exception) {
+                clearLocalSession()
+                return Result.failure(SecurityException("Unknown patient role: ${response.role}"))
+            }
+
+            if (role != Role.PATIENT) {
+                clearLocalSession()
+                return Result.failure(SecurityException("Staff accounts cannot access the Patient application"))
+            }
+
+            tokenManager.saveToken(response.access_token)
+            val user = User(
+                id = response.userId,
+                name = response.name ?: response.userId,
+                role = role,
+                department = null,
+                isActive = true
+            )
+            tokenManager.saveUser(user)
+            _currentUser.value = user
+            Result.success(user)
+        } catch (e: Exception) {
+            clearLocalSession()
             Result.failure(e)
         }
     }
@@ -49,13 +101,16 @@ open class AuthRepository(
         }
     }
 
-    private fun clearLocalSession() {
+    open fun clearLocalSession() {
         tokenManager.clear()
         cookieJar.clear()
         _currentUser.value = null
     }
 
     open fun saveUserSession(user: User, token: String) {
+        require(!token.startsWith("firebase_token_") && !token.startsWith("demo_google_token_")) {
+            "Synthetic tokens cannot be stored in TokenManager. Only backend-issued JWTs are accepted."
+        }
         tokenManager.saveToken(token)
         tokenManager.saveUser(user)
         _currentUser.value = user
